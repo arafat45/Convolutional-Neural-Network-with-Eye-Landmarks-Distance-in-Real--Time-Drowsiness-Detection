@@ -1,0 +1,32 @@
+#Loading the accuracy and loss array for each model
+
+import pickle
+with open('proposed network.pickle', 'wb') as f:
+    pickle.dump([train_loss, val_loss, train_acc, val_acc], f)
+    
+with open('lenet.pickle', 'rb') as f:
+    lenettl,lenetvl,lenettc,lenetvc = pickle.load(f)
+    
+with open('vggfacenet.pickle', 'rb') as f:
+    vggtl,vggvl,vggtc,vggvc = pickle.load(f)
+    
+with open('alexnet.pickle', 'rb') as f:
+    alextl,alexvl,alextc,alexvc = pickle.load(f)
+    
+import matplotlib.pyplot as plt
+
+plt.figure(1,figsize=(10,5))
+plt.plot(xc,newvc)
+plt.plot(xc,lenetvc)
+plt.plot(xc,vggvc)
+plt.plot(xc,alexvc)
+plt.xlabel('epochs')
+plt.ylabel('validation accuracy for different architecture')
+plt.title('comparison between different architecture')
+plt.grid(True)
+plt.legend(['Proposed Architecture', 'LeNet-5' , 'VGG-FaceNet', 'AlexNet'], loc=7)
+#print plt.style.available # use bmh, classic,ggplot for big pictures
+plt.style.use(['classic'])
+plt.savefig('comparison.png')
+
+#It will plot the traing and testing loss and accuracy curve for each model in a single figure
