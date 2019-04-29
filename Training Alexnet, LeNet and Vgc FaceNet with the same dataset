@@ -1,1 +1,199 @@
+#importing essential libraries
 
+import os,cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.utils import shuffle
+from sklearn.cross_validation import train_test_split
+from keras import backend as K
+K.set_image_dim_ordering('th')
+
+from keras.utils import np_utils
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, AveragePooling2D
+from keras.optimizers import SGD,RMSprop,adam
+
+PATH = os.getcwd()
+# Define data path
+data_path = PATH + '/data'
+data_dir_list = os.listdir(data_path)
+
+img_rows=24
+img_cols=24
+num_channel=1
+num_epoch=25
+
+num_classes = 2
+
+img_data_list=[]
+
+for dataset in data_dir_list:
+	img_list=os.listdir(data_path+'/'+ dataset)
+	print ('Loaded the images of dataset-'+'{}\n'.format(dataset))
+	for img in img_list:
+		input_img=cv2.imread(data_path + '/'+ dataset + '/'+ img )
+		input_img=cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
+		input_img_resize=cv2.resize(input_img,(24,24))
+		img_data_list.append(input_img_resize)
+        
+img_data = np.array(img_data_list)
+img_data = img_data.astype('float32')
+img_data /= 255
+print (img_data.shape)
+
+if num_channel==1:
+	if K.image_dim_ordering()=='th':
+		img_data= np.expand_dims(img_data, axis=1) 
+		print (img_data.shape)
+	else:
+		img_data= np.expand_dims(img_data, axis=4) 
+		print (img_data.shape)
+		
+else:
+	if K.image_dim_ordering()=='th':
+		img_data=np.rollaxis(img_data,3,1)
+		print (img_data.shape)
+        
+        
+# Define the number of classes
+num_classes = 2
+
+num_of_samples = img_data.shape[0]
+labels = np.ones((num_of_samples,),dtype='int64')
+
+labels[0:2380]=1
+labels[2380:4838]=0
+
+
+names = ['close eye','open eye']
+
+# convert class labels to on-hot encoding
+Y = np_utils.to_categorical(labels, num_classes)
+
+#Shuffle the dataset
+x,y = shuffle(img_data,Y, random_state=2)
+# Split the dataset
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=2)
+
+input_shape=img_data[0].shape
+
+print(input_shape)
+
+#AlexNet
+
+from keras.layers.normalization import BatchNormalization
+model = Sequential()
+model.add(Convolution2D(96, 11,11,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='valid'))
+# Batch Normalisation before passing it to the next layer
+model.add(BatchNormalization())
+model.add(Convolution2D(256, 11,11,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+# Pooling
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='valid'))
+# Batch Normalisation
+model.add(BatchNormalization())
+model.add(Convolution2D(384, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+# Batch Normalisation
+model.add(BatchNormalization())
+model.add(Convolution2D(384, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+# Batch Normalisation
+model.add(BatchNormalization())
+model.add(Convolution2D(256, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+# Batch Normalisation
+model.add(BatchNormalization())
+# Passing it to a dense layer
+model.add(Flatten())
+# 1st Dense Layer
+model.add(Dense(4096))
+model.add(Activation('relu'))
+# Add Dropout to prevent overfitting
+model.add(Dropout(0.4))
+# Batch Normalisation
+model.add(BatchNormalization())
+
+# 2nd Dense Layer
+model.add(Dense(4096))
+model.add(Activation('relu'))
+# Add Dropout
+model.add(Dropout(0.4))
+# Batch Normalisation
+model.add(BatchNormalization())
+# 3rd Dense Layer
+model.add(Dense(1000))
+model.add(Activation('relu'))
+# Add Dropout
+model.add(Dropout(0.4))
+# Batch Normalisation
+model.add(BatchNormalization())
+# Output Layer
+model.add(Dense(2))
+model.add(Activation('softmax'))
+model.compile(loss='binary_crossentropy',optimizer= adam(lr=0.001),metrics=["accuracy"])
+hist = model.fit(X_train, y_train, batch_size=16, nb_epoch=num_epoch, verbose=1, validation_data=(X_test, y_test))
+model.save('alexnet_fst.h5')
+
+#LeNet
+
+model = Sequential()
+model.add(Convolution2D(16, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(AveragePooling2D())
+model.add(Convolution2D(16, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(AveragePooling2D())
+# Passing it to a dense layer
+model.add(Flatten())
+# 1st Dense Layer
+model.add(Dense(120))
+model.add(Activation('relu'))
+model.add(Dense(84))
+model.add(Activation('relu'))
+# Output Layer
+model.add(Dense(2))
+model.add(Activation('softmax'))
+model.compile(loss='binary_crossentropy',optimizer= adam(lr=0.001),metrics=["accuracy"])
+hist = model.fit(X_train, y_train, batch_size=16, nb_epoch=num_epoch, verbose=1, validation_data=(X_test, y_test))
+model.save('lenet_fst.h5')
+
+#Vgg FaceNet
+
+model = Sequential()
+model.add(Convolution2D(64, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='valid'))
+model.add(Convolution2D(128, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='valid'))
+model.add(Convolution2D(256, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='valid'))
+model.add(Convolution2D(512, 3,3,border_mode='same',input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='valid'))
+# Passing it to a dense layer
+model.add(Flatten())
+# 1st Dense Layer
+model.add(Dense(4096))
+model.add(Activation('relu'))
+# Add Dropout to prevent overfitting
+model.add(Dropout(0.5))
+# 2nd Dense Layer
+model.add(Dense(4096))
+model.add(Activation('relu'))
+# Add Dropout
+model.add(Dropout(0.5))
+# Output Layer
+model.add(Dense(2))
+model.add(Activation('softmax'))
+model.compile(loss='binary_crossentropy',optimizer= adam(lr=0.001),metrics=["accuracy"])
+hist = model.fit(X_train, y_train, batch_size=16, nb_epoch=num_epoch, verbose=1, validation_data=(X_test, y_test))
+model.save('vgg_fst.h5')
+
+#the training and testing loss array can be saved as the same way shown in 'Proposed CNN Network File'
