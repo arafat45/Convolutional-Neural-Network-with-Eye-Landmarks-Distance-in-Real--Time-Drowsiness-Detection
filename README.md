@@ -12,7 +12,4 @@ In this project we introduced a CNN architecture using least numbers of feature 
 ** Hardware:  1. PC having 8 Gb RAM, Core i7 and 7th Genration processor
               2. Webcam for capturing Real Time Videos
               
-Proposed CNN network: 
-
-![](Convolutional-Neural-Network-with-Eye-Landmarks-Distance-in-Real--Time-Drowsiness-Detection/CNN network.jpg)
 
